@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Code Reviewer</title>
+  <meta name="description" content="Professional AI-powered code review platform for GitHub and GitLab." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23f8faf9'/><text y='.75em' x='8' font-size='50' fill='%2310b981' font-family='sans-serif' font-weight='bold'>AI</text></svg>" />
+  <!-- Font system: Segoe UI for professional UI, Fira Code for code -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@300;400;500;600;700&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body>
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Detail Inspector Modal -->
+  <div id="detail-overlay" class="detail-overlay">
+    <div class="detail-modal" id="detail-modal-content">
+      <!-- Populated dynamically by JS -->
+    </div>
+  </div>
+
+  <!-- Main App Wrapper -->
+  <div class="app-container">
+
+    <!-- ── Top Menu Navigation Bar ── -->
+    <header class="header">
+      <div class="header-left">
+        <div class="logo-container">
+          <div class="logo-icon">AI</div>
+          <div class="logo-text">
+            <h1>Code Reviewer</h1>
+            <p class="logo-subtitle">Automated Code Quality Analysis</p>
+          </div>
+        </div>
+      </div>
+      
+      <nav class="nav-bar" id="nav-bar">
+        <button class="nav-btn active" data-tab="dashboard">Dashboard</button>
+        <button class="nav-btn" data-tab="reviews">Reviews</button>
+        <button class="nav-btn" data-tab="telemetry">Telemetry</button>
+        <button class="nav-btn" data-tab="integration">Integration</button>
+      </nav>
+      
+      <div class="header-status">
+        <div class="status-dot"></div>
+        <span>Active</span>
+      </div>
+    </header>
+
+    <!-- ── VIEW 1: DASHBOARD OVERVIEW ── -->
+    <main id="view-dashboard" class="view-pane">
+      
+      <!-- Stats Deck -->
+      <section class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-inner">
+            <div class="stat-main">
+              <span class="stat-label">Total Reviews</span>
+              <span class="stat-value" id="stat-total-reviews">0</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-inner">
+            <div class="stat-main">
+              <span class="stat-label">Issues Found</span>
+              <span class="stat-value" id="stat-total-findings">0</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-inner">
+            <div class="stat-main">
+              <span class="stat-label">High Quality PRs</span>
+              <span class="stat-value" id="stat-high-quality">0</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-inner">
+            <div class="stat-main">
+              <span class="stat-label">Average Score</span>
+              <span class="stat-value" id="stat-avg-score">0</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Dashboard Two-Column Grid -->
+      <div class="main-grid">
+        
+        <!-- Left: Summary Table -->
+        <div class="glass-panel">
+          <div class="panel-header">
+            <div class="panel-title">Recent Activity</div>
+          </div>
+          <div class="table-container">
+            <table class="reviews-table">
+              <thead>
+                <tr>
+                  <th>Pull Request</th>
+                  <th>Author</th>
+                  <th>Status</th>
+                  <th>Score</th>
+                  <th>Time</th>
+                </tr>
+              </thead>
+              <tbody id="dashboard-tbody">
+                <tr>
+                  <td colspan="5">
+                    <div class="table-loader-row">
+                      <span class="loader-spinner"></span>
+                      <span class="loader-text">Loading reviews...</span>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="panel-footer">
+            <button class="link-btn" onclick="switchTab('reviews')">View full reviews database &rarr;</button>
+          </div>
+        </div>
+
+        <!-- Right: Controls -->
+        <div class="sidebar">
+          <div class="glass-panel">
+            <div class="panel-header">
+              <div class="panel-title">Review Launcher</div>
+            </div>
+            <div class="panel-body">
+              <p class="panel-helper-text">Submit any public GitHub Pull Request URL to run an instant deep analysis on its changeset.</p>
+              <form class="review-form" id="review-form">
+                <div class="form-group">
+                  <label class="form-label" for="pr-url-input">GitHub PR URL</label>
+                  <input
+                    type="url"
+                    id="pr-url-input"
+                    class="form-input"
+                    placeholder="https://github.com/owner/repo/pull/123"
+                    required
+                  />
+                </div>
+                <button type="submit" class="btn-primary" id="submit-btn">
+                  <span class="spinner"></span>
+                  <span class="btn-text">Run Review</span>
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+
+    <!-- ── VIEW 2: REVIEWS DATABASE ── -->
+    <main id="view-reviews" class="view-pane hidden">
+      <div class="glass-panel">
+        <div class="panel-header-wrapper">
+          <div class="panel-header">
+            <div class="panel-title">Reviews Console</div>
+          </div>
+          
+          <!-- Search & Status Pills -->
+          <div class="filter-bar">
+            <div class="search-box">
+              <input
+                type="text"
+                id="search-input"
+                class="search-input"
+                placeholder="Search reviews by repository, author, or title..."
+                autocomplete="off"
+              />
+              <button class="clear-search-btn" id="clear-search" style="display: none;">✕</button>
+            </div>
+            <div class="filter-pills" id="filter-pills">
+              <button class="filter-pill active" data-filter="all">All</button>
+              <button class="filter-pill" data-filter="complete">Complete</button>
+              <button class="filter-pill" data-filter="analyzing">Analyzing</button>
+              <button class="filter-pill" data-filter="error">Error</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table class="reviews-table">
+            <thead>
+              <tr>
+                <th>Pull Request</th>
+                <th>Author</th>
+                <th>Status</th>
+                <th>Score</th>
+                <th>Findings</th>
+                <th>Analyzed Time</th>
+              </tr>
+            </thead>
+            <tbody id="reviews-tbody">
+              <tr>
+                <td colspan="6">
+                  <div class="table-loader-row">
+                    <span class="loader-spinner"></span>
+                    <span class="loader-text">Loading console...</span>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+
+    <!-- ── VIEW 3: WEBHOOK TELEMETRY ── -->
+    <main id="view-telemetry" class="view-pane hidden">
+      <div class="glass-panel terminal-panel">
+        <div class="panel-header">
+          <div class="panel-title flex-between" style="width: 100%;">
+            <span>Webhook Console Feed</span>
+            <span class="terminal-path">telemetry-stream.log</span>
+          </div>
+        </div>
+        <div class="activity-feed" id="activity-feed">
+          <div class="empty-state">
+            <div class="empty-title">Console Silent</div>
+            <div class="empty-desc">Webhook telemetry events will appear here in real-time.</div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- ── VIEW 4: INTEGRATION GUIDE ── -->
+    <main id="view-integration" class="view-pane hidden">
+      <div class="glass-panel">
+        <div class="panel-header">
+          <div class="panel-title">Integration Instructions</div>
+        </div>
+        <div class="panel-body doc-body">
+          <h2>Setting up Webhooks</h2>
+          <p>Wire up your repository to enable fully automated, real-time code reviews directly inside your pull requests.</p>
+          
+          <div class="doc-section">
+            <h3>GitHub Integration</h3>
+            <ol class="doc-list">
+              <li>Navigate to your GitHub Repository &rarr; <strong>Settings</strong> &rarr; <strong>Webhooks</strong> &rarr; <strong>Add webhook</strong></li>
+              <li>Set the <strong>Payload URL</strong> to your active endpoint webhook route:<br/>
+                <code class="doc-code">http://your-server-domain/webhook</code>
+              </li>
+              <li>Configure the <strong>Content type</strong> exactly to:<br/>
+                <code class="doc-code">application/json</code>
+              </li>
+              <li>Select the event trigger type: <strong>Let me select individual events</strong>, check <strong>Pull requests</strong>, and uncheck other events.</li>
+              <li>Check <strong>Active</strong> and submit.</li>
+            </ol>
+          </div>
+
+          <div class="doc-section">
+            <h3>GitLab Integration</h3>
+            <ol class="doc-list">
+              <li>Navigate to GitLab Project &rarr; <strong>Settings</strong> &rarr; <strong>Webhooks</strong></li>
+              <li>Set <strong>URL</strong> to:<br/>
+                <code class="doc-code">http://your-server-domain/webhook</code>
+              </li>
+              <li>Under triggers, check <strong>Merge request events</strong> and submit.</li>
+            </ol>
+          </div>
+
+          <div class="doc-section">
+            <h3>Active System Scopes</h3>
+            <table class="doc-table">
+              <thead>
+                <tr>
+                  <th>Scope</th>
+                  <th>Route</th>
+                  <th>Method</th>
+                  <th>Format</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Webhook Receiver</td>
+                  <td>/webhook</td>
+                  <td>POST</td>
+                  <td>JSON payload</td>
+                </tr>
+                <tr>
+                  <td>Manual Review</td>
+                  <td>/api/review</td>
+                  <td>POST</td>
+                  <td>{"pr_url": "url"}</td>
+                </tr>
+                <tr>
+                  <td>Console Telemetry</td>
+                  <td>/api/events</td>
+                  <td>GET</td>
+                  <td>JSON array</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+
+  </div>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
