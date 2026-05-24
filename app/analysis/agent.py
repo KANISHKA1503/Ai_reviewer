@@ -137,13 +137,15 @@ class CodeReviewAgent:
         critical = [f for f in findings if f.severity.value == "critical"]
         major = [f for f in findings if f.severity.value == "major"]
 
+        patterns_json = json.dumps([p['pattern'] for p in memory_context.get('patterns', [])])
+        
         reasoning_prompt = f"""Current analysis state:
 - Critical issues: {len(critical)}
 - Major issues: {len(major)}
 - Total findings: {len(findings)}
 - Iteration: {self.iteration_count}/{self.max_iterations}
 
-Recent patterns from memory: {json.dumps([p['pattern'] for p in memory_context.get('patterns', [])])}
+Recent patterns from memory: {patterns_json}
 
 Decide:
 1. Should we create fix PRs?
@@ -151,7 +153,8 @@ Decide:
 3. What patterns to remember?
 4. Continue reasoning?
 
-Respond in JSON: {{"should_continue": bool, "actions": [{"type": "create_issue", "for_finding": "..."}]}}"""
+Respond in JSON with format:
+{{"should_continue": true/false, "actions": [{{"type": "create_issue", "for_finding": "..."}}]}}"""
 
         try:
             response = self.ai_engine._call_with_retry(reasoning_prompt)
