@@ -22,6 +22,7 @@ from app.github_client import GitHubClient
 from app.gitlab_client import GitLabClient
 from app.diff_parser import parse_github_files, compute_diff_position
 from app.analysis.analyzer import Analyzer
+from app.analysis.agent import CodeReviewAgent
 from app.analysis.models import DiffFile
 from app.comment_formatter import (
     format_summary_comment,
@@ -310,9 +311,15 @@ def _run_github_review(review_id: int, repo: str, pr_number: int):
             )
             return
 
-        # Run AI analysis
-        analyzer = Analyzer()
-        result = analyzer.analyze_pr(diff_files, repo, pr_title)
+        # Run AI analysis with autonomous agent
+        agent = CodeReviewAgent(gh_client=gh)
+        result = agent.analyze_pr_autonomously(
+            diff_files,
+            repo,
+            pr_number,
+            pr_title,
+            pr_data.get("user", {}).get("login", "unknown")
+        )
 
         # Post review to GitHub
         try:

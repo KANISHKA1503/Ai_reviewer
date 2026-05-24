@@ -57,3 +57,10 @@ class Config:
         ".css": "css", ".scss": "scss", ".vue": "vue",
         ".svelte": "svelte",
     }
+
+    # --- Agent Configuration ---
+    AGENT_MODE = os.environ.get("AGENT_MODE", "true").lower() == "true"
+    AGENT_AUTO_FIX = os.environ.get("AGENT_AUTO_FIX", "true").lower() == "true"
+    AGENT_CREATE_ISSUES = os.environ.get("AGENT_CREATE_ISSUES", "true").lower() == "true"
+    AGENT_MAX_ITERATIONS = int(os.environ.get("AGENT_MAX_ITERATIONS", "3"))
+
